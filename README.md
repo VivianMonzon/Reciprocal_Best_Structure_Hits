@@ -1,8 +1,9 @@
 # Reciprocal Best Structure Hits
 ## Background
-In this work, we are using AlphaFold structure models [[1]](#1) to find the closest homologues proteins between <i>Homo sapiens</i> and <i>D. melanogaster</i>, <i>C. elegans</i>, <i>S. cerevisiae</i> and <i>S. pombe</i> as well as between <i>S. cerevisiae</i> and <i>S. pombe</i>. We are uing the strcuture aligner Foldseek [[2]](#2) to run all against all and search for the best scoring hit in both directions to detect the Reciprocal Best Structure Hits (RBSH). We compare the results to protein pairs detected by their sequence similarity as Reciprocal Best Hits (RBH) and verify the results using the PANTHER family classification files [[3]](#3). </br>
+In this work, we are using AlphaFold structure models [[1]](#1) to find the closest homologues proteins between <i>Homo sapiens</i> and <i>D. melanogaster</i>, <i>C. elegans</i>, <i>S. cerevisiae</i> and <i>S. pombe</i> as well as between <i>S. cerevisiae</i> and <i>S. pombe</i>. We are using the strcuture aligner Foldseek [[2]](#2) to run all against all and search for the best scoring hit in both directions to detect the Reciprocal Best Structure Hits (RBSH). We compare the results to protein pairs detected by their sequence similarity as Reciprocal Best Hits (RBH) and verify the results using the PANTHER family classification files [[3]](#3). </br>
 
 ## Dataset
+The detected RBSH and RBH can be found under Results_file. 
 
 ## References
 <a id="1">[1]</a>
