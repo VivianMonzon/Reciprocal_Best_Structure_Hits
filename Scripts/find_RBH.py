@@ -35,6 +35,10 @@ def find_best_hits(fh_blast_out):
     for q in query_ids:
         df_q = df[df['query'] == q]
         df_q_max = df_q[df_q['evalue'] == df_q['evalue'].min()]
+        if df_q_max.shape[0] > 1:
+            df_q_max = df_q_max[df_q_max['bit score'] == df_q_max['bit score'].max()]
+        else:
+            df_q_max = df_q_max
         df_top_hits = df_top_hits.append(df_q_max)
     return df_top_hits
 
