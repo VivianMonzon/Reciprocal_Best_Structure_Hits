@@ -7,7 +7,7 @@
 # @brief This script generates Reciprocal Best Structural Hits
 # Requires foldseek (https://github.com/steineggerlab/foldseek) to be installed in /bin of the project root
 #
-# usage: python find_RBSH.py config.ini
+# usage: python find_RBSH.py config.ini --runfoldseek [yes, no]
 #
 ###################
 
@@ -23,6 +23,7 @@ def run(command_list):
     stdout = str(out_log.stdout, "utf-8")
 
     return stdout
+
 
 def get_model(outputdir, link):
     script_path = os.getcwd()
@@ -58,19 +59,13 @@ def get_model(outputdir, link):
     print(f"Number of models for {proteome_id}: {len(os.listdir(proteomedir))}")
     return proteome_id
 
+
 def delete_cif(filedir):
     pattern=r'\.cif\.gz'
     for f in os.listdir(filedir):
         if re.search(pattern, f):
             os.remove(os.path.join(filedir, f))
 
-def load_long_proteins(protein_file):
-    excluded_proteins = set()
-    with open(protein_file, "r") as fin:
-        for line in fin.readlines():
-            line = line.strip()
-            excluded_proteins.add(line)
-    return excluded_proteins
 
 def get_foldseek(script_dir):
     bindir=os.path.join(script_dir,"bin")
@@ -88,11 +83,12 @@ def get_foldseek(script_dir):
         shutil.rmtree(os.path.join(script_dir, "foldseek"))
     sys.path.append(f"{bindir}/")
 
+
 def run_foldseek(outputdir, script_path, proteome_id1, proteome_id2):
     print(f"Running foldseek for {proteome_id1}/{proteome_id2}")
     foldseek = os.path.join(script_path, "bin/foldseek")
-    output_file = os.path.join(outputdir, f"{proteome_id1}_{proteome_id2}.m8")
-    if not os.path.isfile(output_file) or os.path.getsize(output_file) == 0:
+    m8_file = os.path.join(outputdir, f"{proteome_id1}_{proteome_id2}.m8")
+    if not os.path.isfile(m8_file) or os.path.getsize(m8_file) == 0:
         input_dir = os.path.join(outputdir, proteome_id1)
         db_file = os.path.join(outputdir, f"{proteome_id2}_db")
         tmp_dir = os.path.join(outputdir, "tmp")
@@ -100,25 +96,29 @@ def run_foldseek(outputdir, script_path, proteome_id1, proteome_id2):
         
         output_format = "query,target,qlen,tlen,fident,alnlen,mismatch,qstart,qend,tstart,tend,evalue,bits"
 
-        cmd = f"{foldseek} easy-search --format-output {output_format} {input_dir} {db_file} {output_file} {tmp_dir}"
+        cmd = f"{foldseek} easy-search --format-output {output_format} {input_dir} {db_file} {m8_file} {tmp_dir}"
         run(cmd)
 
-    return output_file
+    return m8_file
 
-def get_relevant_matches(outputdir, matches, excluded_proteins):
+
+def get_relevant_matches(outputdir, matches):
+    all_protein_matches = dict()
     if os.path.isfile(matches) and os.path.getsize(matches) > 0:
         match = os.path.basename(matches)
 
-        output_file = os.path.join(outputdir, f"{match.split('.')[0]}_no_long.txt")
-        output_file_evalue = os.path.join(outputdir, f"{match.split('.')[0]}_evalue_no_long.csv")
+        species = match.split('.')[0]
+        output_best_hits = os.path.join(outputdir, f"{species}_best_hits.csv")
+        output_all_hits = os.path.join(outputdir, f"{species}_all_dom_hits.csv")
         try:
-            os.remove(output_file_evalue)
+            os.remove(output_all_hits)
         except FileNotFoundError:
             pass
-        with open(matches, "r") as f, open(output_file, "w") as fout:
+        with open(matches, "r") as f, open(output_best_hits, "w") as fout:
             af = ""
             list_matches = []
-            all_protein_matches = dict()
+            count_best_hits = 0
+            same_bits_score = 0
 
             for line in f.readlines():
                 line = line.strip()
@@ -128,7 +128,9 @@ def get_relevant_matches(outputdir, matches, excluded_proteins):
                 if not af:
                     af = aftmp
                 if aftmp != af:
-                    protein_matches, text = get_best_match(output_file_evalue, list_matches, excluded_proteins)
+                    protein_matches, text, count_best, same_bits = get_best_match(output_all_hits, list_matches)
+                    count_best_hits += count_best
+                    same_bits_score += same_bits
                     all_protein_matches |= protein_matches
                     fout.write(text)
 
@@ -137,17 +139,22 @@ def get_relevant_matches(outputdir, matches, excluded_proteins):
 
                 list_matches.append(values)
 
-            protein_matches, text = get_best_match(output_file_evalue, list_matches, excluded_proteins)
+            protein_matches, text, count_best, same_bits = get_best_match(output_all_hits, list_matches)
+            count_best_hits += count_best
+            same_bits_score += same_bits
             all_protein_matches |= protein_matches
 
             fout.write(text)
+    
+    print(f"best hits {species}: {count_best_hits}")
+    print(f"same bit score {species}: {same_bits_score}")
     return all_protein_matches
 
-def get_best_match(output_file_evalue, list_matches, excluded_proteins):
 
+def get_best_match(output_all_hits, list_matches):
     keep = dict()
     pattern = r"[0-9]+\.pdbnum\.pdb_[A-Za-z0-9]+"
-    with open(output_file_evalue, "a") as fout:
+    with open(output_all_hits, "a") as fout:
         for line in list_matches:
             if re.search(pattern, line[1]):  # non existing pdb file => ignore match ## long proteins, how to download all the pdb files generated by AF?
                 continue
@@ -158,6 +165,7 @@ def get_best_match(output_file_evalue, list_matches, excluded_proteins):
             if not keep:
                 keep[f"{qstart}-{qend}"] = [line]
             else:
+                # group results by domains
                 new = True
                 for key in keep.keys():
                     saved_s, saved_e = key.split("-")
@@ -173,47 +181,59 @@ def get_best_match(output_file_evalue, list_matches, excluded_proteins):
 
         prot_prot = dict()
         text = ""
+        count_best_hits = 0
+        same_bits_score = 0
     
         for key, lines in keep.items():
             keeplines = []
             evalue_saved = ""
+            bits_saved = 0
+            
             for match in lines:
                 evalue = float(match[11])
                 prot1 = match[0].split('-')[1]
                 prot2 = match[1].split('-')[1]
+                bits = int(match[12])
 
-                # if prot1 not in excluded_proteins and prot2 not in excluded_proteins:
-                fout.write(f"{prot1},{prot2},{evalue}\n")
+                fout.write(f"{prot1},{prot2},{int(line[7])}-{int(line[8])},{int(line[9])}-{int(line[10])},{evalue},{bits}\n")
                 if evalue < 1.0e-04 and not keeplines:
                     evalue_saved = evalue
+                    bits_saved = bits
                     keeplines.append(match)
                 else:
                     if evalue < 1.0e-04 and evalue <= evalue_saved:
                         if evalue == evalue_saved:
-                            keeplines.append(match)
+
+                            if bits > bits_saved: #filter same e-value results using the bitscore
+                                keeplines = [match]
+                            elif bits == bits_saved:
+                                same_bits_score +=1
+                                keeplines.append(match)
                         elif evalue < evalue_saved:
-                            keeplines = set(match)
+                            keeplines = [match]
                         evalue_saved = evalue
 
             for keepline in keeplines:
+                count_best_hits += 1
                 # AF-P50993-F1-model_v2.pdb.gz => P50993'
                 prot1 = keepline[0].split('-')[1]
                 prot2 = keepline[1].split('-')[1]
                 vals = ', '.join(keepline[2:])
-                if prot1 not in excluded_proteins and prot2 not in excluded_proteins:
-                    if prot1 in prot_prot:
-                        if prot2 in prot_prot[prot1]:
-                            prot_prot[prot1][prot2].append(vals)
-                        else:
-                            prot_prot[prot1][prot2] = [vals]
+
+                if prot1 in prot_prot:
+                    if prot2 in prot_prot[prot1]:
+                        prot_prot[prot1][prot2].append(vals)
                     else:
-                        prot_prot[prot1] = {prot2: [vals]}
-                    text+=f"{prot1},{prot2},{vals}\n"
+                        prot_prot[prot1][prot2] = [vals]
+                else:
+                    prot_prot[prot1] = {prot2: [vals]}
+                text+=f"{prot1},{prot2},{int(keepline[7])}-{int(keepline[8])},{int(keepline[9])}-{int(keepline[10])},{float(keepline[11])},{int(keepline[12])}\n"
 
-    return prot_prot, text
+    return prot_prot, text, count_best_hits, same_bits_score
 
-def get_orthologs(output_file, matches1, matches2):
-    with open(output_file, "w") as fout:
+
+def get_orthologs(orthologs_file, matches1, matches2):
+    with open(orthologs_file, "w") as fout:
         orthologs = []
         for match1_prot1, match1_prots2 in matches1.items():
             for match1_prot2 in match1_prots2:
@@ -227,7 +247,14 @@ def get_orthologs(output_file, matches1, matches2):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", metavar="FILE", help="configuration file")
+    parser.add_argument("config", metavar="CONFIG_FILE", help="configuration file")
+    parser.add_argument(
+        "-r",
+        "--runfoldseek",
+        help="Start analysis by running Foldseek or not",
+        choices=["yes", "no"],
+        required=True,
+    )
     args = parser.parse_args()
 
     if not os.path.isfile(args.config):
@@ -239,53 +266,37 @@ if __name__ == "__main__":
     os.makedirs(outputdir, exist_ok=True)
     script_path = os.getcwd()
 
-    ######
-    # run if m8 files don't exist
-    link1=config["misc"]["af_link1"]
-    link2=config["misc"]["af_link2"]
+    if args.runfoldseek == "yes":
+        print("Analysis with Foldseek run")
+        link1=config["misc"]["af_link1"]
+        link2=config["misc"]["af_link2"]
 
-    get_foldseek(script_path)
+        get_foldseek(script_path)
 
-    proteome_id1=get_model(outputdir, link1)
-    proteome_id2=get_model(outputdir, link2)
+        proteome_id1 = get_model(outputdir, link1)
+        proteome_id2 = get_model(outputdir, link2)
 
-    os.chdir(script_path)
+        os.chdir(script_path)
 
-    outputfile1to2 = run_foldseek(outputdir, script_path, proteome_id1, proteome_id2)
-    outputfile2to1 = run_foldseek(outputdir, script_path, proteome_id2, proteome_id1)
+        outputfile1to2 = run_foldseek(outputdir, script_path, proteome_id1, proteome_id2)
+        outputfile2to1 = run_foldseek(outputdir, script_path, proteome_id2, proteome_id1)
 
-    long_proteins_file = config["misc"]["long_proteins"]
-    excluded_proteins = load_long_proteins(long_proteins_file)
-    ######
+        protein_matches1 = get_relevant_matches(outputdir, outputfile1to2)
+        protein_matches2 = get_relevant_matches(outputdir, outputfile2to1)
 
-    ######
-    # part to run if m8 file already generated in different directory
-    # comment the section above (between ######) before running
+        orthologs_file = os.path.join(outputdir, f"{proteome_id1}_{proteome_id2}.csv")
 
-    # os.chdir(script_path)
-    # excluded_proteins = set()
-    # outputfile1to2 = config["misc"]["foldseek_file1"]
-    # outputfile2to1 = config["misc"]["foldseek_file2"]
-    # csvfile = config["misc"]["csvfile"]
-    ######
+    else:
+        # part ran if m8 file already generated in different directory
+        print("Analysis of Foldseek files only")
+        os.chdir(script_path)
+        outputfile1to2 = config["misc"]["foldseek_file1"]
+        outputfile2to1 = config["misc"]["foldseek_file2"]
+        csvfile = config["misc"]["csvfile"]
 
-    protein_matches1 = get_relevant_matches(outputdir, outputfile1to2, excluded_proteins)
-    protein_matches2 = get_relevant_matches(outputdir, outputfile2to1, excluded_proteins)
+        protein_matches1 = get_relevant_matches(outputdir, outputfile1to2)
+        protein_matches2 = get_relevant_matches(outputdir, outputfile2to1)
 
-    ######
-    # run if m8 files don't exist
-    orthologs_file = os.path.join(outputdir, f"{proteome_id1}_{proteome_id2}_new.csv")
-    #####
-
-    ######
-    # part to run if m8 file already generated in different directory
-    # comment the section above (between ######) before running
-
-    # orthologs_file = os.path.join(outputdir, csvfile)
-    ######
-
+        orthologs_file = os.path.join(outputdir, csvfile)
+        
     get_orthologs(orthologs_file, protein_matches1, protein_matches2)
-
-
-
-    
