@@ -9,21 +9,21 @@ proteome_ids["S_pombe"]="S_pombe_UP000002485_284812_SCHPO_v2"
 
 main(){
     variables
-    # preparations
-    # remove_long_proteins
-    # get_AF_structure_ids
-    # unzip_structure_files
-    # get_seq_from_cif_file
-    # domain_analysis
-    # iupred_analysis
-    # rm_low_quality_regions
+    preparations
+    remove_long_proteins
+    get_AF_structure_ids
+    unzip_structure_files
+    get_seq_from_cif_file
+    domain_analysis
+    iupred_analysis
+    rm_low_quality_regions
     
-    # rbh_search
+    rbh_search
     rbsh_search
-    # adapt_rbsh_compare_approaches
-    # domains_analysis
-    # panther_tables
-    # validation
+    adapt_rbsh_compare_approaches
+    domains_analysis
+    panther_tables
+    validation
 }
 
 variables(){
@@ -166,7 +166,8 @@ rbh_search(){
 }
 
 rbsh_search(){
-    python3.9 tmp.py 
+    # Adapt config.ini file
+    python3.9 ../Scripts/find_RBSH.py ../Scripts/config.ini --runfoldseek yes
 }
 
 adapt_rbsh_compare_approaches(){
