@@ -2,8 +2,8 @@
 
 ## Requirements
 
-Foldseek (https://github.com/steineggerlab/foldseek) to be installed in /bin of the project root
-Python >= 3.9
+Foldseek (https://github.com/steineggerlab/foldseek) to be installed in /bin of the project root <br>
+Python >= 3.9 <br>
 Config file with completed fields
 
 ## Usage
