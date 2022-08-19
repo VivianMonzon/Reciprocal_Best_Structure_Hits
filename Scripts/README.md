@@ -16,4 +16,5 @@ Config file with completed fields
 Python >= 3.9
 
 ## Usage
-`python3.9 find_RBH.py --fasta_A proteome_seqs_A.fasta --fasta_B proteome_seqs_B.fasta --output_file RBH_A_B.csv`
+Searching RBH between organism A and B: <br>
+`python3.9 find_RBH.py --fasta_A protein_seqs_A.fasta --fasta_B protein_seqs_B.fasta --output_file RBH_A_B.csv`
