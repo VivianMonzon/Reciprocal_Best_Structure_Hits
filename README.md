@@ -8,16 +8,16 @@ The detected RBSH and RBH can be found under [Results_file](https://github.com/V
 ## References
 <a id="1">[1]</a>
 Jumper J. et al. Highly accurate protein structure prediction with AlphaFold.
-Nature, doi:10.1038/s41586-021-03819-2 (2021)
+Nature, doi:[10.1038/s41586-021-03819-2](https://www.nature.com/articles/s41586-021-03819-2) (2021)
 
 <a id="2">[2]</a>
 Van Kempen M. et al. Foldseek: fast and accurate protein structure search.
-bioRxiv, doi:10.1101/2022.02.07.479398 (2022)
+bioRxiv, doi:[10.1101/2022.02.07.479398](https://www.biorxiv.org/content/10.1101/2022.02.07.479398v4) (2022)
 
 <a id="3">[3]</a>
 Mi H. et al. PANTHER version 16: a revised family classification, tree-based classification tool, enhancer regions and extensive API.
-Nucleic Acids Res., doi:10.1093/nar/gkaa1106 (2021)
+Nucleic Acids Res., doi:[10.1093/nar/gkaa1106](https://academic.oup.com/nar/article/49/D1/D394/6027812?login=true) (2021)
 
 <a id="4">[4]</a>
 Monzon V., Paysan-Lafosse T., Wood V., Bateman A. Reciprocal best structure hits: using AlphaFold models to discover distant homologues.
-Bioinformatics Advances, [doi:10.1093/bioadv/vbac072](https://academic.oup.com/bioinformaticsadvances/article/2/1/vbac072/6749558) (2022)
+Bioinformatics Advances, doi:[10.1093/bioadv/vbac072](https://academic.oup.com/bioinformaticsadvances/article/2/1/vbac072/6749558) (2022)
